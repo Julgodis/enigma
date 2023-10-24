@@ -1,7 +1,7 @@
 <p align="center">
   <a href="https://github.com/Julgodis/enigma/">
     <picture>
-      <img src="assets/images/logo.svg" height="128">
+      <img src="assets/images/logo_3072.png" height="128">
     </picture>
     <h1 align="center">
       Enigma
@@ -13,7 +13,9 @@
 [![license](https://img.shields.io/crates/l/enigma)](https://github.com/Julgodis/enigma/LICENSE)
 
 ```diff
-!!! This project is primarily for personal use, and I may not actively accept pull requests. Feel free to explore the code, but please understand that contributions might not be incorporated. !!!
+!!! This project is primarily for personal use, and I may not actively accept !!!
+!!! pull requests. Feel free to explore the code, but please understand that  !!!
+!!! contributions might not be incorporated.                                  !!!
 ```
 
 </div>
