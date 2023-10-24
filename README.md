@@ -1,8 +1,5 @@
 <p align="center">
   <a href="https://github.com/Julgodis/enigma/">
-    <picture>
-      <img src="assets/images/logo_3072.png" height="128">
-    </picture>
     <h1 align="center">
       Enigma
     </h1>
@@ -10,7 +7,8 @@
 </p>
 
 <div align="center">
-[![license](https://img.shields.io/crates/l/enigma)](https://github.com/Julgodis/enigma/LICENSE)
+
+[![license](https://img.shields.io/crates/l/picori)](https://github.com/Julgodis/enigma/LICENSE)
 
 ```diff
 !!! This project is primarily for personal use, and I may not actively accept !!!
@@ -44,3 +42,5 @@ ENIGMA_LISTEN=127.0.0.1:3333
 ENIGMA_DATABASE_PATH=enigma.sqlite
 ENIGMA_PASSWORD_SALT=b64_encoded_salt
 ```
+
+Run the service with `cargo run --bin enigma-serve`.
