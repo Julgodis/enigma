@@ -1,6 +1,4 @@
-use pbkdf2::password_hash::SaltString;
-use rusqlite::Connection;
-use std::path::Path;
+use std::{net::SocketAddr, path::Path};
 
 #[cfg(test)]
 mod tests;
@@ -15,57 +13,20 @@ pub use session::VerifySession;
 pub type Result<T> = std::result::Result<T, Error>;
 
 pub struct Database {
-    conn: Connection,
-    password_salt: SaltString,
+    database: kodama_api::Database,
 }
 
 impl Database {
-    pub fn new(db_path: impl AsRef<Path>, salt: &str) -> Result<Self> {
-        let conn = Connection::open(db_path)?;
-        let password_salt = SaltString::from_b64(salt).map_err(Error::Pbkdf2)?;
-        let database = Database {
-            conn,
-            password_salt,
-        };
-        database.init()?;
-        Ok(database)
-    }
+    pub fn new(database_path: impl AsRef<Path>) -> Result<Self> {
+        let database = kodama_api::DatabaseBuilder::new(database_path)
+            .with_kodama(
+                "enigma",
+                "database",
+                SocketAddr::from(([127, 0, 0, 1], 40092)),
+            )
+            .with_migration("001", include_str!("../../schema/001.sql"))
+            .build()?;
 
-    pub fn init(&self) -> Result<()> {
-        self.conn
-            .execute_batch(include_str!("../../schema/schema.sql"))?;
-        Ok(())
-    }
-
-    pub fn transaction(&mut self) -> Result<Tx<'_>> {
-        let tx = self.conn.transaction()?;
-        Tx::new(tx)
-    }
-}
-
-pub struct Tx<'a> {
-    tx: rusqlite::Transaction<'a>,
-}
-
-impl<'a> Tx<'a> {
-    pub fn new(tx: rusqlite::Transaction<'a>) -> Result<Self> {
-        tracing::trace!("[database] BEGIN TRANSACTION");
-        Ok(Tx { tx })
-    }
-
-    pub fn commit(&mut self) -> Result<()> {
-        tracing::trace!("[database] COMMIT TRANSACTION");
-        self.tx.set_drop_behavior(rusqlite::DropBehavior::Commit);
-        Ok(())
-    }
-
-    pub fn inner(&self) -> &rusqlite::Transaction<'a> {
-        &self.tx
-    }
-}
-
-impl Drop for Tx<'_> {
-    fn drop(&mut self) {
-        tracing::trace!("[database] DROP TRANSACTION");
+        Ok(Database { database })
     }
 }

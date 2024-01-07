@@ -11,7 +11,6 @@ chrono = { version = "0.4.31", features = ["serde"] }
 clap = { version = "4.4.6", features = ["derive"] }
 dotenvy = "0.15.7"
 enigma = { path = "../enigma", features = [] }
-enigma-api = { path = "../enigma-api", features = ["axum"] }
 serde = { version = "1.0.189", features = ["derive"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }

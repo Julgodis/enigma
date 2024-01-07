@@ -1,7 +1,10 @@
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,
+    email TEXT,
     password_hash TEXT NOT NULL,
+    password_salt TEXT NOT NULL,
+    password_method TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -29,6 +32,14 @@ CREATE TABLE IF NOT EXISTS sessions (
     track_browser TEXT,
     track_screen_resolution TEXT,
     track_timezone TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    attempt_date DATETIME NOT NULL,
+    attempt_ip_address TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 

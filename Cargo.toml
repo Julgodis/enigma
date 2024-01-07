@@ -2,7 +2,5 @@
 resolver = "2"
 members = [
     "enigma",
-    "enigma-api",
     "enigma-cli",
-    "enigma-serve",
 ]

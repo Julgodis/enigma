@@ -40,6 +40,8 @@ struct CreateUser {
     username: String,
     /// Password for the new user
     password: String,
+    /// Email address for the new user
+    email: Option<String>,
 }
 
 #[derive(Parser)]
@@ -102,9 +104,7 @@ fn cli() -> Result<()> {
         .parse::<PathBuf>()
         .expect("parse::<PathBuf> will never fail");
 
-    let salt = dotenvy::var("ENIGMA_PASSWORD_SALT")?;
-
-    let database = Database::new(database_path, &salt)?;
+    let database = Database::new(database_path)?;
     let opts: Opts = Opts::parse();
 
     match opts.cmd {
@@ -117,9 +117,13 @@ fn cli() -> Result<()> {
 
 fn cli_user(mut database: Database, cmd: User) -> Result<()> {
     match cmd {
-        User::Create(CreateUser { username, password }) => {
+        User::Create(CreateUser { username, password, email }) => {
             tracing::info!("create user: {:?}", username);
-            database.create_user(&username, &password)?;
+            database.create_user(enigma::user::CreateUser {
+                username,
+                password,
+                email,
+            })?;
             tracing::info!("  [success]");
         },
         User::Delete(DeleteUser { username }) => {

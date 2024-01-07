@@ -1,14 +1,13 @@
 use enigma_api::TrackInformation;
+use pbkdf2::password_hash::SaltString;
 
-use crate::VerifySession;
+use crate::{user::CreateUser, VerifySession};
 
 use super::Database;
 
 // Setup and teardown functions for tests
 fn setup_test_db() -> Database {
-    let db =
-        Database::new(":memory:", "vkzROAFwR3Zgx+KZU7Ecxw").expect("failed to create database");
-    db.init().expect("failed to initialize database");
+    let db = Database::new(":memory:").expect("failed to create database");
     db
 }
 
@@ -18,8 +17,17 @@ fn test_create_user_with_hash_password() {
     let mut db = setup_test_db();
     let username = "testuser";
     let password_hash = "hashed_password";
+
+    let salt = "vkzROAFwR3Zgx+KZU7Ecxw";
+    let password_salt = SaltString::from_b64(salt).unwrap();
     let result = db
-        .create_user_with_hash_password(username, password_hash)
+        .create_user_with_hash_password(
+            username,
+            &None,
+            password_hash,
+            password_salt,
+            "pbkdf2-sha256",
+        )
         .expect("failed to create user");
     assert!(result > 0);
 }
@@ -28,10 +36,12 @@ fn test_create_user_with_hash_password() {
 #[tracing_test::traced_test]
 fn test_create_user() {
     let mut db = setup_test_db();
-    let username = "testuser";
-    let password = "password123";
     let result = db
-        .create_user(username, password)
+        .create_user(CreateUser {
+            username: "testuser".into(),
+            password: "password123".into(),
+            email: Some("test@test.test".into()),
+        })
         .expect("failed to create user");
     assert!(result > 0);
 }
@@ -41,7 +51,13 @@ fn test_create_user() {
 fn test_add_and_remove_permission() {
     let mut db = setup_test_db();
 
-    let user_id = db.create_user("test", "test").unwrap();
+    let user_id = db
+        .create_user(CreateUser {
+            username: "testuser".into(),
+            password: "password123".into(),
+            email: Some("test@test.test".into()),
+        })
+        .unwrap();
     let site = "example.com";
     let permission = "read";
 
@@ -58,9 +74,18 @@ fn test_add_and_remove_permission() {
 }
 
 #[test]
+#[tracing_test::traced_test]
 fn test_create_session_token() {
     let mut db = setup_test_db();
-    let _ = db.create_user_with_hash_password("test", "$pbkdf2-sha256$i=600000,l=32$vkzROAFwR3Zgx+KZU7Ecxw$npnw9yAJfs39y2cuHGwgCyklCz5yaUy8pt+LhNe7zak")
+
+    let salt = "vkzROAFwR3Zgx+KZU7Ecxw";
+    let password_salt = SaltString::from_b64(salt).unwrap();
+    let _ = db.create_user_with_hash_password(
+        "test",
+        &Some("test".into()),
+        "$pbkdf2-sha256$i=600000,l=32$vkzROAFwR3Zgx+KZU7Ecxw$npnw9yAJfs39y2cuHGwgCyklCz5yaUy8pt+LhNe7zak",
+        password_salt,
+        "pbkdf2-sha256")
         .expect("failed to create user");
 
     let track = TrackInformation {
