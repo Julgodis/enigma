@@ -24,23 +24,3 @@ Enigma is an authentication service for user and session management:
 * **Session management** - When a user is authenticated, a session is created. Sessions can be used to authenticate requests to other services. Sessions will expire after a period of inactivity.
 * **Permission management** - Users can be assigned permissions, which can be used to restrict access to certain services.
 
-## Getting Started
-
-To get started with Enigma, you'll need to install Rust and Cargo. Once you have those installed, you can clone the Enigma repository and build the crates:
-
-```sh
-git clone https://github.com/Julgodis/enigma.git
-cd enigma
-cargo build --all
-```
-
-## Usage
-
-Engima uses environment variables to configure the service. The following environment variables are required:
-```sh
-ENIGMA_LISTEN=127.0.0.1:3333
-ENIGMA_DATABASE_PATH=enigma.sqlite
-ENIGMA_PASSWORD_SALT=b64_encoded_salt
-```
-
-Run the service with `cargo run --bin enigma-serve`.

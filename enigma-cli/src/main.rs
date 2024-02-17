@@ -1,13 +1,15 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use enigma::Database;
-use std::path::PathBuf;
 
 #[derive(Parser)]
 #[clap(version = "1.0", author = "Julgodis")]
 struct Opts {
     #[clap(subcommand)]
     cmd: Command,
+
+    #[clap(long, default_value = "enigma.db")]
+    path: String,
 }
 
 #[derive(Subcommand)]
@@ -79,8 +81,6 @@ struct RemovePerm {
 }
 
 fn main() {
-    dotenvy::dotenv().expect("unable to load .env file");
-
     tracing_subscriber::fmt::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .with_target(true)
@@ -95,17 +95,13 @@ fn main() {
         Err(e) => {
             tracing::error!("{:?}", e);
             std::process::exit(1);
-        },
+        }
     }
 }
 
 fn cli() -> Result<()> {
-    let database_path = dotenvy::var("ENIGMA_DATABASE_PATH")?
-        .parse::<PathBuf>()
-        .expect("parse::<PathBuf> will never fail");
-
-    let database = Database::new(database_path)?;
     let opts: Opts = Opts::parse();
+    let database = Database::new(opts.path)?;
 
     match opts.cmd {
         Command::User { cmd } => cli_user(database, cmd)?,
@@ -117,23 +113,25 @@ fn cli() -> Result<()> {
 
 fn cli_user(mut database: Database, cmd: User) -> Result<()> {
     match cmd {
-        User::Create(CreateUser { username, password, email }) => {
-            tracing::info!("create user: {:?}", username);
+        User::Create(CreateUser {
+            username,
+            password,
+            email,
+        }) => {
+            println!("create user: {:?}", username);
             database.create_user(enigma::user::CreateUser {
                 username,
                 password,
                 email,
             })?;
-            tracing::info!("  [success]");
-        },
+        }
         User::Delete(DeleteUser { username }) => {
-            tracing::info!("delete user: {:?}", username);
+            println!("delete user: {:?}", username);
             database.delete_user_by_username(&username)?;
-            tracing::info!("  [success]");
-        },
+        }
         User::List => {
-            tracing::info!("users:");
             let users = database.list_users()?;
+            println!("found {} users:", users.len());
             for user in users {
                 let perms = user
                     .permissions
@@ -141,9 +139,9 @@ fn cli_user(mut database: Database, cmd: User) -> Result<()> {
                     .map(|p| format!("{}:{}", p.site, p.permission))
                     .collect::<Vec<_>>()
                     .join(",");
-                tracing::info!("  #{:4} | {:>30} | {}", user.id, user.username, perms);
+                println!("  #{:4} | {:>30} | {}", user.id, user.username, perms);
             }
-        },
+        }
     }
 
     Ok(())
@@ -156,26 +154,22 @@ fn cli_perms(mut database: Database, cmd: Perm) -> Result<()> {
             site,
             permission,
         }) => {
-            tracing::info!("add permission: {:?} {:?} {:?}", username, site, permission);
+            println!("add permission: {:?} {:?} {:?}", username, site, permission);
             let user = database.get_user_by_username(&username)?;
             database.add_permission(user.id, &site, &permission)?;
-            tracing::info!("  [success]");
-        },
+        }
         Perm::Remove(RemovePerm {
             username,
             site,
             permission,
         }) => {
-            tracing::info!(
+            println!(
                 "remove permission: {:?} {:?} {:?}",
-                username,
-                site,
-                permission
+                username, site, permission
             );
             let user = database.get_user_by_username(&username)?;
             database.remove_permission(user.id, &site, &permission)?;
-            tracing::info!("  [success]");
-        },
+        }
     }
 
     Ok(())

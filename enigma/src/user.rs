@@ -1,5 +1,3 @@
-use enigma_api::Permission;
-use enigma_api::User;
 use kodama_api::query;
 use kodama_api::query::param;
 use kodama_api::query::IntoQuery;
@@ -11,7 +9,10 @@ use pbkdf2::password_hash::SaltString;
 use rand_core::OsRng;
 use rusqlite::params;
 
+use crate::Permission;
 use crate::Result;
+use crate::Session;
+use crate::User;
 
 use super::Database;
 
@@ -80,11 +81,15 @@ impl Database {
             tracing::trace!("  permission: {:?}", permission);
 
             let query = Query::insert_into("permissions")
+                .or_ignore()
                 .column("user_id", param(1))
                 .column("site", param(2))
                 .column("permission", param(3))
                 .into_query();
-            query.insert(&tx, params![user_id, site, permission])?;
+            match query.insert(&tx, params![user_id, site, permission]) {
+                Ok(_) => (),
+                Err(err) => Err(err)?,
+            }
         }
 
         tx.commit()?;
@@ -101,9 +106,9 @@ impl Database {
             tracing::trace!("  permission: {:?}", permission);
 
             let query = Query::delete_from("permissions")
-                .condition(query::eq("user_id", param(1)))
-                .condition(query::eq("site", param(2)))
-                .condition(query::eq("permission", param(3)))
+                .condition(query::eq(query::column("user_id"), param(1)))
+                .condition(query::eq(query::column("site"), param(2)))
+                .condition(query::eq(query::column("permission"), param(3)))
                 .into_query();
 
             query.delete(&tx, params![user_id, site, permission])?;
@@ -120,7 +125,7 @@ impl Database {
         let query = Query::select_from("permissions")
             .column("site")
             .column("permission")
-            .condition(query::eq("user_id", param(1)))
+            .condition(query::eq(query::column("user_id"), param(1)))
             .into_query();
 
         struct InnerPermission {
@@ -215,7 +220,7 @@ impl Database {
         tracing::trace!("  password_hash: {:?}", password_hash);
         tracing::trace!("  password_salt: {:?}", password_salt);
         tracing::trace!("  password_method: {:?}", password_method);
-            
+
         if Self::verify_password(password, &password_hash, &password_salt, &password_method)? {
             Ok(Some(user_id))
         } else {
@@ -240,11 +245,12 @@ impl Database {
 
         let query = Query::select_from("users")
             .all_columns()
-            .condition(query::eq("id", param(1)))
+            .condition(query::eq(query::column("id"), param(1)))
             .into_query();
 
         let mut user = query
-            .select_one::<InnerUser>(tx, params![user_id])
+            .select_maybe::<InnerUser>(tx, params![user_id])?
+            .ok_or(crate::Error::UserNotFound)
             .map(|u| User {
                 id: u.id,
                 username: u.username,
@@ -272,11 +278,12 @@ impl Database {
 
         let query = Query::select_from("users")
             .all_columns()
-            .condition(query::eq("username", param(1)))
+            .condition(query::eq(query::column("username"), param(1)))
             .into_query();
 
         let mut user = query
-            .select_one::<InnerUser>(tx, params![username])
+            .select_maybe::<InnerUser>(tx, params![username])?
+            .ok_or(crate::Error::UserNotFound)
             .map(|u| User {
                 id: u.id,
                 username: u.username,
@@ -299,7 +306,7 @@ impl Database {
         Ok(user)
     }
 
-    pub fn get_user_by_username(&mut self, username: &str) -> Result<User> {
+    pub fn get_user_by_username(&self, username: &str) -> Result<User> {
         let tx = self.database.transaction()?;
         let user = {
             tracing::trace!("[database] get_user_by_username:");

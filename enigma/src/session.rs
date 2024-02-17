@@ -1,8 +1,6 @@
 use chrono::DateTime;
 use chrono::Days;
 use chrono::Utc;
-use enigma_api::Session;
-use enigma_api::TrackInformation;
 use kodama_api::query;
 use kodama_api::query::param;
 use kodama_api::query::IntoQuery;
@@ -14,6 +12,8 @@ use rusqlite::params;
 
 use crate::Error;
 use crate::Result;
+use crate::Session;
+use crate::TrackInformation;
 
 use super::Database;
 
@@ -47,7 +47,7 @@ impl Database {
         // try to create a session token
         let token_query = Query::select_from("sessions")
             .all_columns()
-            .condition(query::eq("session_token", param(1)))
+            .condition(query::eq(query::column("session_token"), param(1)))
             .into_query();
         let mut token = uuid::Uuid::new_v4().to_string();
         let mut retries = 0;
@@ -144,7 +144,7 @@ impl Database {
         let inner_session = {
             let query = Query::select_from("sessions")
                 .all_columns()
-                .condition(query::eq("session_token", param(1)))
+                .condition(query::eq(query::column("session_token"), query::param(1)))
                 .into_query();
 
             query
@@ -178,7 +178,7 @@ impl Database {
 
         let query = Query::update("sessions")
             .set("last_used_at", param(1))
-            .condition(query::eq("session_token", param(2)))
+            .condition(query::eq(query::column("session_token"), param(2)))
             .into_query();
 
         query.update(tx, params![Utc::now(), session_token])?;
@@ -240,7 +240,7 @@ impl Database {
         {
             tracing::trace!("[database] delete_session: {:?}", session_token);
             let query = Query::delete_from("sessions")
-                .condition(query::eq("session_token", param(1)))
+                .condition(query::eq(query::column("session_token"), param(1)))
                 .into_query();
 
             query.delete(&tx, params![session_token])?;
@@ -256,7 +256,7 @@ impl Database {
         {
             tracing::trace!("[database] delete_expired_sessions");
             let query = Query::delete_from("sessions")
-                .condition(query::lt("expiry_date", param(1)))
+                .condition(query::lt(query::column("expiry_date"), param(1)))
                 .into_query();
 
             query.delete(&tx, params![Utc::now()])?;

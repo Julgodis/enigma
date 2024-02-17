@@ -1,7 +1,6 @@
-use enigma_api::TrackInformation;
 use pbkdf2::password_hash::SaltString;
 
-use crate::{user::CreateUser, VerifySession};
+use crate::{user::CreateUser, VerifySession, TrackInformation};
 
 use super::Database;
 
